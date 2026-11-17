@@ -10,7 +10,7 @@
 --
 -- Settings are applied as an in-memory layer above settings.json (nothing is written to
 -- disk); remove the extension and "ycode: reload hooks" to undo. Banner dismissals are
--- stored in the app database like clicking "dismiss" would (see `ycode-offline: undo`).
+-- stored in the app database, like clicking "dismiss", and stay after removal.
 
 local blocked = 0
 
@@ -105,15 +105,5 @@ end
 %hook zed_predict_onboarding
 - *
     block(self)
-end
-%end
-
--- Bring the banners back (they are persistent dismissals).
-%hook ycode_offline
-%new - Undo
-    for _, key in ipairs(ADS) do
-        ycode.kv_set(key, nil)
-    end
-    ycode.log("ycode-offline: banners restored; remove the extension and reload hooks to undo the rest")
 end
 %end
