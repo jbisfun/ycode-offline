@@ -17,7 +17,8 @@ and never written to disk.
 
 ## Install
 
-    ln -s ~/jbisfun/ycode-offline ~/.config/zed/hooks/ycode-offline
+    # from the ycode-offline clone
+    ln -s "$PWD" ~/.config/zed/hooks/ycode-offline
 
 then "ycode: reload hooks". To undo, remove the link and reload (banner dismissals are
 stored like clicking "dismiss" and stay). The startup sign-in veto
