@@ -4,11 +4,27 @@
 -- * swallows sign-in, account, collaboration/channel/call and update-check actions
 -- * hides the sign-in button, user menu/avatar, collab panel button, onboarding banner
 -- * turns off telemetry, auto-update and the zed.dev edit-prediction provider
+-- * dismisses the upsell banners ("Welcome to Zed AI. Sign In to Try ...", trial ended,
+--   edit-prediction upsell, update announcement) and blocks the predict onboarding modal
+-- * removes all of the above from the command palette
 --
 -- Settings are applied as an in-memory layer above settings.json (nothing is written to
--- disk); remove or disable the extension and "ycode: reload hooks" to undo everything.
+-- disk); remove the extension and "ycode: reload hooks" to undo. Banner dismissals are
+-- stored in the app database like clicking "dismiss" would (see `ycode-offline: undo`).
 
 local blocked = 0
+
+-- Keys of Zed's "Dismissable" banners (crates/*: `impl Dismissable`).
+local ADS = {
+    "dismissed-trial-upsell",                 -- agent panel: Welcome to Zed AI / Sign In to Try
+    "dismissed-trial-end-upsell",             -- agent panel: trial ended
+    "dismissed-edit-predict-upsell",          -- edit prediction upsell
+    "free-plan-edit-predictions-ended-notice",
+    "delta_announcement_dismissed",           -- auto-update announcement
+}
+
+-- Account/online namespaces: swallowed below and hidden from the command palette.
+local NAMESPACES = { "client", "collab", "collab_panel", "channel_modal", "zed_predict_onboarding" }
 
 local function block(self)
     blocked = blocked + 1
@@ -28,6 +44,10 @@ end
         auto_update = false,
         edit_predictions = { provider = "none" },
     }
+    for _, key in ipairs(ADS) do
+        ycode.kv_set(key, "1")
+    end
+    ycode.palette_hide(table.unpack(NAMESPACES))
     ycode.log("ycode-offline: active")
 end
 
@@ -79,5 +99,21 @@ end
 %hook auto_update
 - Check
     block(self)
+end
+%end
+
+%hook zed_predict_onboarding
+- *
+    block(self)
+end
+%end
+
+-- Bring the banners back (they are persistent dismissals).
+%hook ycode_offline
+%new - Undo
+    for _, key in ipairs(ADS) do
+        ycode.kv_set(key, nil)
+    end
+    ycode.log("ycode-offline: banners restored; remove the extension and reload hooks to undo the rest")
 end
 %end
